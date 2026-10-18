@@ -13,7 +13,7 @@ public class BrowserGUI extends JFrame {
     private JTextArea txtResult;
     private JEditorPane webRenderPane;
 
-    public MyBrowserGUI() {
+    public BrowserGUI() {
         setTitle("🌐 Custom Java Web Browser (Group 1)");
         setSize(950, 680);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
