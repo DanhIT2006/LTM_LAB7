@@ -5,6 +5,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +27,7 @@ public class WebServer {
     }
 
     private static void handleClient(Socket socket) {
+        String clientIp = socket.getInetAddress().getHostAddress();
         try (
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
@@ -34,12 +37,11 @@ public class WebServer {
             String requestLine = reader.readLine();
             if (requestLine == null || requestLine.isEmpty()) return;
 
-            System.out.println("[SERVER REC]: " + requestLine);
             String[] parts = requestLine.split(" ");
             String method = parts[0].toUpperCase();
             String path = parts[1].equals("/") ? "/index.html" : parts[1];
 
-            // 2. Đọc tất cả Header & lấy Content-Length (nếu là POST)
+            // 2. Đọc Header & Content-Length
             String headerLine;
             int contentLength = 0;
             while ((headerLine = reader.readLine()) != null && !headerLine.isEmpty()) {
@@ -48,7 +50,7 @@ public class WebServer {
                 }
             }
 
-            // 3. Đọc dữ liệu Body nếu là phương thức POST
+            // 3. Đọc dữ liệu Body nếu là POST
             String postBodyData = "";
             if ("POST".equals(method) && contentLength > 0) {
                 char[] bodyChars = new char[contentLength];
@@ -59,62 +61,71 @@ public class WebServer {
                     bytesRead += read;
                 }
                 postBodyData = new String(bodyChars);
-                System.out.println("[SERVER POST DATA]: " + postBodyData);
             }
 
-            // 4. Chuẩn bị nội dung HTML phản hồi
+            // 4. Chuẩn bị nội dung phản hồi
             byte[] bodyBytes;
             int statusCode = 200;
             String statusText = "OK";
+            String contentType = getMimeType(path);
 
             if ("POST".equals(method)) {
-                // Tách dữ liệu gửi lên (Ví dụ: user=admin&pass=123 -> Map)
                 Map<String, String> params = parseFormData(postBodyData);
+                contentType = "text/html; charset=UTF-8";
                 
-                // Sinh HTML ĐỘNG dựa trên dữ liệu POST gửi lên
                 String dynamicHtml = "<!DOCTYPE html>\n" +
                         "<html>\n" +
-                        "<head><meta charset=\"UTF-8\"><title>KẾT QUẢ XỬ LÝ POST</title></head>\n" +
+                        "<head><meta charset=\"UTF-8\"><title>Xử lý POST</title><link rel=\"stylesheet\" href=\"style.css\"></head>\n" +
                         "<body>\n" +
-                        "   <h1>Xử Lý Dữ Liệu POST Thành Công!</h1>\n" +
-                        "   <p>Dữ liệu đã gửi lên Web Server:</p>\n" +
-                        "   <div><b>Tài khoản:</b> " + params.getOrDefault("user", params.getOrDefault("username", "Chưa nhập")) + "</div>\n" +
-                        "   <div><b>Mật khẩu:</b> " + params.getOrDefault("pass", params.getOrDefault("password", "Chưa nhập")) + "</div>\n" +
-                        "   <p>Thông tin của bạn đã được tiếp nhận và cập nhật vào hệ thống thành công.</p>\n" +
-                        "   <span>Trạng thái: Đã xác thực (Success)</span>\n" +
-                        "   <br/><br/>\n" +
-                        "   <img src=\"success.png\" alt=\"Xác thực thành công\" />\n" +
+                        "   <div class=\"container\">\n" +
+                        "       <h1>Xử Lý Dữ Liệu POST Thành Công!</h1>\n" +
+                        "       <p>Dữ liệu đã nhận được từ Browser của bạn:</p>\n" +
+                        "       <div><b>Tài khoản:</b> " + params.getOrDefault("user", "Chưa nhập") + "</div>\n" +
+                        "       <div><b>Mật khẩu:</b> " + params.getOrDefault("pass", "Chưa nhập") + "</div>\n" +
+                        "       <br/>\n" +
+                        "       <span>Trạng thái: Đã xác thực thành công!</span><br/><br/>\n" +
+                        "       <a href=\"index.html\"> Quay lại Trang Chủ</a>\n" +
+                        "   </div>\n" +
                         "</body>\n" +
                         "</html>";
                 
                 bodyBytes = dynamicHtml.getBytes(StandardCharsets.UTF_8);
 
-            } else { // Phương thức GET hoặc HEAD: Đọc file tĩnh webroot/index.html
+            } else { // GET hoặc HEAD
                 File file = new File(WEB_ROOT + path);
+                if (!file.exists()) {
+                    file = new File("LTM_LAB7/" + WEB_ROOT + path);
+                }
+
                 if (file.exists() && !file.isDirectory()) {
                     bodyBytes = Files.readAllBytes(file.toPath());
                 } else {
                     statusCode = 404;
                     statusText = "Not Found";
-                    bodyBytes = "<h1>404 File Not Found</h1>".getBytes(StandardCharsets.UTF_8);
+                    contentType = "text/html; charset=UTF-8";
+                    bodyBytes = "<h1>404 File Not Found</h1><p>Trang bạn tìm không tồn tại trên Server.</p>".getBytes(StandardCharsets.UTF_8);
                 }
             }
 
-            // 5. Tạo HTTP Response Headers
+            // 5. Tạo HTTP Response Header
             String header = "HTTP/1.1 " + statusCode + " " + statusText + "\r\n" +
-                            "Content-Type: text/html; charset=UTF-8\r\n" +
+                            "Content-Type: " + contentType + "\r\n" +
                             "Content-Length: " + bodyBytes.length + "\r\n" +
-                            "Server: JavaSimpleServer/1.0\r\n" +
+                            "Server: JavaSimpleServer/2.0\r\n" +
                             "Connection: close\r\n\r\n";
 
             out.write(header.getBytes(StandardCharsets.UTF_8));
 
-            // Nếu là GET hoặc POST -> Gửi Body. Nếu HEAD -> Chỉ gửi Header
             if ("GET".equals(method) || "POST".equals(method)) {
                 out.write(bodyBytes);
             }
-
             out.flush();
+
+            // TÍNH NĂNG MỚI: Nhật ký Server Logging chuyên nghiệp
+            String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+            System.out.printf("[%s] [%s] %s %s -> %d %s (%d bytes)\n", 
+                    timeStamp, clientIp, method, path, statusCode, statusText, bodyBytes.length);
+
             socket.close();
 
         } catch (Exception e) {
@@ -122,11 +133,20 @@ public class WebServer {
         }
     }
 
-    // Hàm hỗ trợ tách chuỗi URL-encoded (user=admin&pass=123) thành Map
+    // TÍNH NĂNG MỚI: Tự động phân tích Content-Type (MIME Types)
+    private static String getMimeType(String path) {
+        if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html; charset=UTF-8";
+        if (path.endsWith(".css")) return "text/css; charset=UTF-8";
+        if (path.endsWith(".js")) return "application/javascript; charset=UTF-8";
+        if (path.endsWith(".png")) return "image/png";
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        if (path.endsWith(".json")) return "application/json; charset=UTF-8";
+        return "application/octet-stream";
+    }
+
     private static Map<String, String> parseFormData(String formData) {
         Map<String, String> map = new HashMap<>();
         if (formData == null || formData.trim().isEmpty()) return map;
-
         String[] pairs = formData.split("&");
         for (String pair : pairs) {
             String[] keyValue = pair.split("=");
