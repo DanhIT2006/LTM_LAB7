@@ -115,6 +115,6 @@ public class BrowserGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MyBrowserGUI().setVisible(true));
+        SwingUtilities.invokeLater(() -> new BrowserGUI().setVisible(true));
     }
 }

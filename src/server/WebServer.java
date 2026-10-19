@@ -7,7 +7,7 @@ import java.nio.file.Files;
 
 public class WebServer {
     private static final int PORT = 8080;
-    private static final String WEB_ROOT = "webroot"; 
+    private static final String WEB_ROOT = "webroot";
 
     public static void main(String[] args) {
         System.out.println("=== WEB SERVER dang chay o port " + PORT + " ===");
