@@ -41,10 +41,10 @@ public class BrowserGUI extends JFrame {
         }
     }
 
-    // Ngăn xếp Back/Forward (của phiên duyệt hiện tại)
+    // Ngăn xếp Back/Forward
     private final List<HistoryEntry> navStack = new ArrayList<>();
     private int navIndex = -1;
-    // Nhật ký lịch sử đầy đủ (giống trang chrome://history)
+    // Nhật ký lịch sử đầy đủ
     private final List<HistoryEntry> historyLog = new ArrayList<>();
 
     private JTextField txtUrl;
@@ -85,7 +85,7 @@ public class BrowserGUI extends JFrame {
         navButtons.add(btnReload);
         row1.add(navButtons, BorderLayout.WEST);
 
-        txtUrl = new JTextField("http://172.26.70.253:8080/index.html");
+        txtUrl = new JTextField("http://26.60.13.119:8080/index.html");
         row1.add(txtUrl, BorderLayout.CENTER);
 
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 0));
@@ -253,7 +253,6 @@ public class BrowserGUI extends JFrame {
         String url = txtUrl.getText().trim();
         String method = rdoGet.isSelected() ? "GET" : (rdoPost.isSelected() ? "POST" : "HEAD");
         String postData = txtPostData.getText().trim();
-        String normalized = (url.startsWith("http://") || url.startsWith("https://")) ? url : "http://" + url;
 
         txtResult.setText("Đang kết nối tới " + url + "...\n");
         webRenderPane.setText("");
@@ -296,9 +295,8 @@ public class BrowserGUI extends JFrame {
 
                     // Ghi lịch sử nếu là điều hướng mới
                     if (pushHistory) {
-                        boolean redirected = !res.finalUrl.equals(normalized);
-                        String m = redirected ? "GET" : method; // redirect luôn chuyển thành GET
-                        String pd = redirected ? "" : postData;
+                        String m = res.redirected ? "GET" : method; // redirect luôn chuyển thành GET
+                        String pd = res.redirected ? "" : postData;
                         recordNavigation(new HistoryEntry(res.finalUrl, m, pd, extractTitle(res)));
                     }
                     updateNavButtons();
@@ -318,7 +316,6 @@ public class BrowserGUI extends JFrame {
     }
 
     private void recordNavigation(HistoryEntry entry) {
-        // Đang đứng giữa ngăn xếp mà đi trang mới -> xóa phần "Forward" (giống trình duyệt thật)
         while (navStack.size() > navIndex + 1) {
             navStack.remove(navStack.size() - 1);
         }
