@@ -1,7 +1,6 @@
 package client;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
@@ -318,7 +317,7 @@ public class BrowserGUI extends JFrame {
     }
 
     private void recordNavigation(HistoryEntry entry) {
-        // Đang đứng giữa ngăn xếp mà đi trang mới -> xóa phần "Forward" (giống trình duyệt thật)
+        
         while (navStack.size() > navIndex + 1) {
             navStack.remove(navStack.size() - 1);
         }
