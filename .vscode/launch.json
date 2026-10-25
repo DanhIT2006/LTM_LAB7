@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "SimpleBrowserFX",
+      "request": "launch",
+      "mainClass": "SimpleBrowserFX",
+      "projectName": "WebBrowser_236a308d"
+    },
+    {
+      "type": "java",
+      "name": "Browser (BrowserGUI)",
+      "request": "launch",
+      "mainClass": "client.BrowserGUI",
+      "javaExec": "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+      "vmArgs": "--module-path D:/openjfx-21.0.12_windows-x64_bin-sdk/javafx-sdk-21.0.12/lib --add-modules javafx.controls,javafx.web,javafx.swing"
+    },
+    {
+      "type": "java",
+      "name": "Server (ServerGUI)",
+      "request": "launch",
+      "mainClass": "server.ServerGUI"
+    }
+  ]
+}

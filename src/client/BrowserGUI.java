@@ -4,7 +4,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,9 +13,6 @@ import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.text.html.FormSubmitEvent;
-import javax.swing.text.html.HTMLDocument;
 
 public class BrowserGUI extends JFrame {
 
@@ -41,10 +37,10 @@ public class BrowserGUI extends JFrame {
         }
     }
 
-    // Ngăn xếp Back/Forward
+    // Ngăn xếp Back/Forward (của phiên duyệt hiện tại)
     private final List<HistoryEntry> navStack = new ArrayList<>();
     private int navIndex = -1;
-    // Nhật ký lịch sử đầy đủ
+    // Nhật ký lịch sử đầy đủ (giống trang chrome://history)
     private final List<HistoryEntry> historyLog = new ArrayList<>();
 
     private JTextField txtUrl;
@@ -53,7 +49,7 @@ public class BrowserGUI extends JFrame {
     private JButton btnGo, btnBack, btnForward, btnReload, btnHistory;
 
     private JTextArea txtResult;
-    private JEditorPane webRenderPane;
+    private WebViewPanel webView;
     private JLabel lblStatus;
 
     public BrowserGUI() {
@@ -125,37 +121,34 @@ public class BrowserGUI extends JFrame {
         txtResult.setFont(new Font("Monospaced", Font.PLAIN, 13));
         tabPane.addTab("📊 Báo cáo phân tích / Header", new JScrollPane(txtResult));
 
-        webRenderPane = new JEditorPane();
-        webRenderPane.setEditable(false);
-        webRenderPane.setContentType("text/html");
+        // Khung hiển thị dùng JavaFX WebView (WebKit) -> hỗ trợ CSS/JS hiện đại
+        webView = new WebViewPanel();
 
-        // Bấm vào Link / Submit form trên giao diện web -> điều hướng mới (có ghi lịch sử)
-        webRenderPane.addHyperlinkListener(e -> {
-            if (e instanceof FormSubmitEvent) {
-                FormSubmitEvent formEvt = (FormSubmitEvent) e;
-                txtUrl.setText(formEvt.getURL().toString());
-
-                if (formEvt.getMethod() == FormSubmitEvent.MethodType.POST) {
-                    rdoPost.setSelected(true);
-                    txtPostData.setEnabled(true);
-                    txtPostData.setText(formEvt.getData());
-                } else {
-                    rdoGet.setSelected(true);
-                    txtPostData.setEnabled(false);
-                }
-                execute(true);
-            } else if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                String targetUrl = e.getURL() != null ? e.getURL().toString() : e.getDescription();
-                if (targetUrl != null && !targetUrl.isEmpty()) {
-                    txtUrl.setText(targetUrl);
-                    rdoGet.setSelected(true);
-                    txtPostData.setEnabled(false);
-                    execute(true);
-                }
-            }
+        // Bấm link trong trang -> điều hướng mới (có ghi lịch sử)
+        webView.setLinkHandler(targetUrl -> {
+            txtUrl.setText(targetUrl);
+            rdoGet.setSelected(true);
+            txtPostData.setEnabled(false);
+            execute(true);
         });
 
-        tabPane.addTab("🌐 Giao diện Trang Web (Bonus)", new JScrollPane(webRenderPane));
+        // Submit form trong trang -> gửi lại bằng Socket (GET hoặc POST)
+        webView.setFormHandler((formMethod, action, data) -> {
+            if ("post".equalsIgnoreCase(formMethod)) {
+                txtUrl.setText(action);
+                rdoPost.setSelected(true);
+                txtPostData.setEnabled(true);
+                txtPostData.setText(data);
+            } else {
+                String sep = action.contains("?") ? "&" : "?";
+                txtUrl.setText(data.isEmpty() ? action : action + sep + data);
+                rdoGet.setSelected(true);
+                txtPostData.setEnabled(false);
+            }
+            execute(true);
+        });
+
+        tabPane.addTab("🌐 Giao diện Trang Web (WebView)", webView);
         add(tabPane, BorderLayout.CENTER);
 
         // --- THANH TRẠNG THÁI (SOUTH) ---
@@ -255,7 +248,7 @@ public class BrowserGUI extends JFrame {
         String postData = txtPostData.getText().trim();
 
         txtResult.setText("Đang kết nối tới " + url + "...\n");
-        webRenderPane.setText("");
+        webView.clear();
         lblStatus.setText(" ⏳ Đang tải dữ liệu từ " + url + "...");
 
         new Thread(() -> {
@@ -279,17 +272,11 @@ public class BrowserGUI extends JFrame {
                         sb.append("• Thẻ <img>:  ").append(res.imgCount).append("\n");
                         txtResult.setText(sb.toString());
 
-                        try {
-                            if ("POST".equals(method)) {
-                                // setPage() sẽ GET lại URL nên sẽ sai với kết quả POST -> hiển thị trực tiếp body
-                                webRenderPane.setText(res.body);
-                                ((HTMLDocument) webRenderPane.getDocument()).setBase(new URL(res.finalUrl));
-                                webRenderPane.setCaretPosition(0);
-                            } else {
-                                webRenderPane.setPage(res.finalUrl);
-                            }
-                        } catch (Exception ignore) {
-                            webRenderPane.setText(res.body);
+                        if ("POST".equals(method) && !res.redirected) {
+                            // Kết quả POST: hiển thị trực tiếp body (WebView mà tự tải lại sẽ là GET, sai kết quả)
+                            webView.loadHtml(res.body, res.finalUrl);
+                        } else {
+                            webView.loadUrl(res.finalUrl);
                         }
                     }
 
@@ -316,6 +303,7 @@ public class BrowserGUI extends JFrame {
     }
 
     private void recordNavigation(HistoryEntry entry) {
+        // Đang đứng giữa ngăn xếp mà đi trang mới -> xóa phần "Forward" (giống trình duyệt thật)
         while (navStack.size() > navIndex + 1) {
             navStack.remove(navStack.size() - 1);
         }
