@@ -1,5 +1,9 @@
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.beans.binding.Bindings;
 import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
@@ -17,7 +21,6 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.*;
 import java.util.zip.GZIPInputStream;
-
 
 public class SimpleBrowserFX extends Application {
 
@@ -41,7 +44,8 @@ public class SimpleBrowserFX extends Application {
     private final TextArea infoArea = new TextArea();
     private final TabPane tabs = new TabPane();
     private final Label status = new Label(" Sẵn sàng");
-    private boolean suppress = false; // true khi vua loadContent (POST) -> khong fetch lai
+    private final HistoryStore store = new HistoryStore("history.json"); // lưu lịch sử ra file JSON
+    private boolean suppress = false; // true khi vừa loadContent (POST) -> không fetch lại
 
     @Override
     public void start(Stage stage) {
@@ -50,7 +54,7 @@ public class SimpleBrowserFX extends Application {
         engine.setUserAgent(UA);
         history = engine.getHistory();
 
-        // ---- Thanh dieu huong ----
+        // ---- Thanh điều hướng ----
         Button back = new Button("◀");
         Button fwd = new Button("▶");
         Button reload = new Button("⟳");
@@ -116,10 +120,17 @@ public class SimpleBrowserFX extends Application {
         root.setCenter(tabs);
         root.setBottom(bottom);
 
-        // ---- Su kien engine ----
-        engine.titleProperty().addListener((o, a, t) -> stage.setTitle((t == null || t.isEmpty() ? "Simple Browser" : t) + " - Simple Browser"));
+        // ---- Sự kiện engine ----
+        engine.titleProperty().addListener((o, a, t) -> {
+            stage.setTitle((t == null || t.isEmpty() ? "Simple Browser" : t) + " - Simple Browser");
+            String cur = engine.getLocation();
+            if (t != null && cur != null) store.setTitle(cur, t);
+        });
         engine.locationProperty().addListener((o, a, loc) -> {
-            if (!suppress && loc != null && loc.startsWith("http")) urlField.setText(loc);
+            if (!suppress && loc != null && loc.startsWith("http")) {
+                urlField.setText(loc);
+                store.visit(loc, "GET"); // Duyệt web bình thường trên WebEngine mặc định là GET
+            }
         });
         engine.setOnStatusChanged(ev -> status.setText(" " + (ev.getData() == null ? "" : ev.getData())));
         engine.getLoadWorker().stateProperty().addListener((o, old, st) -> {
@@ -149,7 +160,7 @@ public class SimpleBrowserFX extends Application {
         go();
     }
 
-    // ---- Xu ly nut Go ----
+    // ---- Xử lý nút Go ----
     private void go() {
         String url = normalize(urlField.getText());
         if (url == null) return;
@@ -157,9 +168,9 @@ public class SimpleBrowserFX extends Application {
         urlField.setText(url);
         if ("GET".equals(method)) {
             suppress = false;
-            engine.load(url);       // WebView tu render + tu luu lich su
+            engine.load(url);       // WebView tự render + tự lưu lịch sử
         } else {
-            analyze(method, url, postField.getText(), true); // POST / HEAD: tu gui request
+            analyze(method, url, postField.getText(), true); // POST / HEAD: tự gửi request
         }
     }
 
@@ -173,7 +184,7 @@ public class SimpleBrowserFX extends Application {
         return "https://" + s;
     }
 
-    // ---- Gui request o thread rieng, roi cap nhat UI ----
+    // ---- Gửi request ở thread riêng, rồi cập nhật UI ----
     private void analyze(String method, String url, String body, boolean render) {
         status.setText(" Đang gửi " + method + " " + url + " ...");
         new Thread(() -> {
@@ -191,6 +202,9 @@ public class SimpleBrowserFX extends Application {
     }
 
     private void show(String method, Result r, boolean render) {
+        // Ghi nhận lịch sử với phương thức tương ứng (GET, POST, HEAD)
+        store.visit(r.finalUrl, method);
+
         StringBuilder sb = new StringBuilder();
         sb.append("URL         : ").append(r.finalUrl).append('\n');
         sb.append("Phương thức : ").append(method).append('\n');
@@ -220,7 +234,7 @@ public class SimpleBrowserFX extends Application {
             appendHeaders(sb, r);
             infoArea.setText(sb.toString());
             sourceArea.setText(html);
-            if (render) { // POST: WebEngine khong tu POST duoc nen render noi dung tra ve
+            if (render) { // POST: WebEngine không tự POST được nên render nội dung trả về
                 suppress = true;
                 urlField.setText(r.finalUrl);
                 String base = "<base href=\"" + r.finalUrl.replace("\"", "%22") + "\">";
@@ -236,22 +250,82 @@ public class SimpleBrowserFX extends Application {
     }
 
     private void showHistory(Button anchor) {
-        ContextMenu menu = new ContextMenu();
-        var entries = history.getEntries();
-        if (entries.isEmpty()) menu.getItems().add(new MenuItem("(trống)"));
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            WebHistory.Entry en = entries.get(i);
-            final int idx = i;
-            String title = en.getTitle() == null || en.getTitle().isEmpty() ? en.getUrl() : en.getTitle();
-            if (title.length() > 70) title = title.substring(0, 70) + "...";
-            MenuItem mi = new MenuItem((i == history.getCurrentIndex() ? "▶ " : "   ") + title + "   —   " + en.getUrl());
-            mi.setOnAction(e -> history.go(idx - history.getCurrentIndex()));
-            menu.getItems().add(mi);
-        }
-        menu.show(anchor, javafx.geometry.Side.BOTTOM, 0, 0);
+        Stage st = new Stage();
+        st.setTitle("Lịch sử duyệt web  (" + store.getFile() + ")");
+
+        ObservableList<HistoryStore.Entry> all = FXCollections.observableArrayList(store.list());
+        FilteredList<HistoryStore.Entry> filtered = new FilteredList<>(all, e -> true);
+
+        TextField search = new TextField();
+        search.setPromptText("Tìm theo tiêu đề hoặc URL...");
+        search.textProperty().addListener((o, a, q) -> {
+            String k = q == null ? "" : q.toLowerCase().trim();
+            filtered.setPredicate(e -> k.isEmpty()
+                    || e.url.toLowerCase().contains(k) 
+                    || e.title.toLowerCase().contains(k)
+                    || (e.method != null && e.method.toLowerCase().contains(k)));
+        });
+
+        TableView<HistoryStore.Entry> table = new TableView<>(filtered);
+        TableColumn<HistoryStore.Entry, String> cTime = new TableColumn<>("Lần cuối");
+        cTime.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().lastVisit));
+        cTime.setPrefWidth(140);
+
+        TableColumn<HistoryStore.Entry, String> cMethod = new TableColumn<>("Phương thức");
+        cMethod.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().method == null || c.getValue().method.isEmpty() ? "GET" : c.getValue().method));
+        cMethod.setPrefWidth(90);
+
+        TableColumn<HistoryStore.Entry, String> cTitle = new TableColumn<>("Tiêu đề");
+        cTitle.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().title.isEmpty() ? "(chưa có tiêu đề)" : c.getValue().title));
+        cTitle.setPrefWidth(260);
+
+        TableColumn<HistoryStore.Entry, String> cUrl = new TableColumn<>("URL");
+        cUrl.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().url));
+        cUrl.setPrefWidth(420);
+
+        TableColumn<HistoryStore.Entry, String> cCount = new TableColumn<>("Số lần");
+        cCount.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().visits)));
+        cCount.setPrefWidth(60);
+
+        table.getColumns().addAll(cTime, cMethod, cTitle, cUrl, cCount);
+        table.setPlaceholder(new Label("Chưa có lịch sử"));
+
+        // Nhấp đúp = mở lại đúng URL đó
+        table.setRowFactory(tv -> {
+            TableRow<HistoryStore.Entry> row = new TableRow<>();
+            row.setOnMouseClicked(ev -> {
+                if (ev.getClickCount() == 2 && !row.isEmpty()) {
+                    methodBox.setValue(row.getItem().method != null ? row.getItem().method : "GET");
+                    urlField.setText(row.getItem().url);
+                    go();
+                    st.close();
+                }
+            });
+            return row;
+        });
+
+        Button del = new Button("Xóa mục đã chọn");
+        del.setOnAction(e -> {
+            HistoryStore.Entry sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) { store.delete(sel.url); all.remove(sel); }
+        });
+        Button clr = new Button("Xóa tất cả");
+        clr.setOnAction(e -> {
+            Alert al = new Alert(Alert.AlertType.CONFIRMATION, "Xóa toàn bộ lịch sử?", ButtonType.YES, ButtonType.NO);
+            al.showAndWait().ifPresent(bt -> { if (bt == ButtonType.YES) { store.clear(); all.clear(); } });
+        });
+
+        HBox tools = new HBox(8, search, del, clr);
+        HBox.setHgrow(search, Priority.ALWAYS);
+        tools.setPadding(new Insets(8));
+        VBox.setVgrow(table, Priority.ALWAYS);
+        st.setScene(new Scene(new VBox(tools, table), 980, 520));
+        st.show();
     }
 
-    // ---- HTTP thu cong ----
+    // ---- HTTP thủ công ----
     private Result fetch(String method, String urlStr, String body) throws Exception {
         long t0 = System.currentTimeMillis();
         Result res = new Result();

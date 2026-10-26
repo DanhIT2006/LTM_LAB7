@@ -1,0 +1,98 @@
+[
+  {
+    "url": "https://google.com/",
+    "method": "GET",
+    "title": "",
+    "visits": 2,
+    "firstVisit": "2026-10-26 20:57:30",
+    "lastVisit": "2026-10-26 20:59:50"
+  },
+  {
+    "url": "https://www.google.com/",
+    "method": "GET",
+    "title": "Google",
+    "visits": 2,
+    "firstVisit": "2026-10-26 20:57:31",
+    "lastVisit": "2026-10-26 20:59:50"
+  },
+  {
+    "url": "https://www.google.com/search?q=youtube",
+    "method": "GET",
+    "title": "Google Search",
+    "visits": 1,
+    "firstVisit": "2026-10-26 20:59:58",
+    "lastVisit": "2026-10-26 20:59:58"
+  },
+  {
+    "url": "https://www.google.com/search?q=youtube&sei=31zfauyGEYCuwcsP8sCuoAM",
+    "method": "GET",
+    "title": "youtube - Tìm trên Google",
+    "visits": 2,
+    "firstVisit": "2026-10-26 20:59:58",
+    "lastVisit": "2026-10-26 21:00:18"
+  },
+  {
+    "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dyoutube%26sei%3D31zfauyGEYCuwcsP8sCuoAM&q=EgQqcOfeGN-5_dYGIjDkPEaaAzjhJl3tIEtj2oYo-CJX-8cH51No39KdFF5ViYny5dLel_YT0B8faqeQFVsyAnJSWgFDYJTdirb5j-P1zwE",
+    "method": "GET",
+    "title": "https://www.google.com/search?q=youtube&sei=31zfauyGEYCuwcsP8sCuoAM",
+    "visits": 2,
+    "firstVisit": "2026-10-26 20:59:59",
+    "lastVisit": "2026-10-26 20:59:59"
+  },
+  {
+    "url": "https://www.google.com/sorry/index?continue=https://www.google.com/search%3Fq%3Dyoutube&q=EgQqcOfeGN-5_dYGIjAMCteb1xs3M-co_K6S8J4s7cdR-vawTTf2rQX_0krG2fW_TMSKkeDHRgJBBEyw1lAyAnJSWgFDYO2vvvuX4-qE-QE",
+    "method": "GET",
+    "title": "",
+    "visits": 1,
+    "firstVisit": "2026-10-26 20:59:59",
+    "lastVisit": "2026-10-26 20:59:59"
+  },
+  {
+    "url": "https://www.google.com/sorry/index",
+    "method": "GET",
+    "title": "",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:17",
+    "lastVisit": "2026-10-26 21:00:17"
+  },
+  {
+    "url": "https://www.google.com/search?q=youtube&sei=31zfauyGEYCuwcsP8sCuoAM&google_abuse=GOOGLE_ABUSE_EXEMPTION%3DID%3Dcfeb8c7f96c2ae94:TM%3D1793023199:C%3Dr:IP%3D42.112.231.222-:S%3DKOrquyZpR2zk0obKGqEIOkU%3B+path%3D/%3B+domain%3Dgoogle.com%3B+expires%3DMon,+26-Oct-2026+16:59:59+GMT",
+    "method": "GET",
+    "title": "",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:17",
+    "lastVisit": "2026-10-26 21:00:17"
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESZQHrOzAVDkjEnR08aDVYFJNcFumKeYwi1yIPA2SVa-BZ93pKYi24oBX04cmEwSaASbHpN0_px6W_c0fUytpkYggMFIE-XMUyJbgPnASRBb__2r3MCL0IWgmgccZ4FuNe_fZVJVme",
+    "method": "GET",
+    "title": "",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:19",
+    "lastVisit": "2026-10-26 21:00:19"
+  },
+  {
+    "url": "https://www.youtube.com/?app=desktop&hl=vi",
+    "method": "GET",
+    "title": "YouTube",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:19",
+    "lastVisit": "2026-10-26 21:00:19"
+  },
+  {
+    "url": "https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253Fapp%253Ddesktop%2526hl%253Dvi&hl=en&ec=65620",
+    "method": "GET",
+    "title": "",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:23",
+    "lastVisit": "2026-10-26 21:00:23"
+  },
+  {
+    "url": "https://accounts.google.com/v3/signin/identifier?continue=https://www.youtube.com/signin?action_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253Fapp%253Ddesktop%2526hl%253Dvi&ec=65620&hl=en&passive=true&service=youtube&uilel=3&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S-902845177:1793023223969026",
+    "method": "GET",
+    "title": "YouTube",
+    "visits": 1,
+    "firstVisit": "2026-10-26 21:00:23",
+    "lastVisit": "2026-10-26 21:00:23"
+  }
+]
