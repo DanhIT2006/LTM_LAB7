@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Browser (BrowserGUI)",
+      "request": "launch",
+      "mainClass": "client.BrowserGUI",
+      "javaExec": "C:/Program Files/Java/jdk-21/bin/java.exe",
+      "vmArgs": "--module-path \"D:/JavaFX/javafx-sdk-21.0.12/lib\" --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing"
+    },
+    {
+      "type": "java",
+      "name": "SimpleBrowserFX",
+      "request": "launch",
+      "mainClass": "SimpleBrowserFX",
+      "javaExec": "C:/Program Files/Java/jdk-21/bin/java.exe",
+      "vmArgs": "--module-path \"D:/JavaFX/javafx-sdk-21.0.12/lib\" --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing"
+    },
+    {
+      "type": "java",
+      "name": "Server (ServerGUI)",
+      "request": "launch",
+      "mainClass": "server.ServerGUI"
+    }
+  ]
+}
